@@ -92,7 +92,38 @@ curl -X POST https://oop-emr.vercel.app/api/encounter \
   -d @initial.json
 ```
 
-### 3.2 `POST /api/encounter/:id/images` — append images to an existing encounter
+### 3.2a `POST /api/encounter/:id/image` — upload a single image (raw bytes)
+
+Send the actual image bytes in the request body. The server base64-encodes and stores the image inline in the encounter state.
+
+Headers: `Content-Type: image/png` (or `image/jpeg`, `image/webp`, `image/gif`, etc.), `x-api-key: <key>`.
+
+Body: raw binary image bytes (no JSON wrapper, no multipart).
+
+```bash
+curl -X POST https://oop-emr.vercel.app/api/encounter/TRX-20480418-001/image \
+  -H "Content-Type: image/png" \
+  -H "x-api-key: $API_KEY" \
+  --data-binary @/path/to/cxr.png
+```
+
+Responses:
+
+```
+200 OK
+{ "ok": true, "encounter_id": "TRX-20480418-001", "added": 1, "total_images": 3, "size_bytes": 759015, "mime": "image/png" }
+```
+
+```
+413 Payload Too Large           — over 4 MB (Vercel Hobby caps requests at 4.5 MB; we reject at 4 MB)
+415 Unsupported Media Type      — Content-Type did not start with image/
+404 Not Found                   — encounter doesn't exist (send initial first)
+401 / 400 / 405                 — usual meanings
+```
+
+Use this when you have the image as bytes in hand (file on disk, a Buffer in memory, etc.) and don't want to base64-encode client-side. For multiple images, call it N times — one per image.
+
+### 3.2b `POST /api/encounter/:id/images` — append images by URL or data URI (JSON)
 
 Dedicated endpoint for attaching images (URLs or data URIs) without sending a full encounter payload. Use this when images are produced asynchronously (e.g. imaging comes back after the initial clinical data was already sent).
 

@@ -22,6 +22,7 @@ const demoResetHandler = require('./api/demo-reset');
 const healthHandler = require('./api/health');
 const triggerCallHandler = require('./api/trigger-call');
 const encounterImagesHandler = require('./api/encounter/[id]/images');
+const encounterImageHandler = require('./api/encounter/[id]/image');
 const { isUpstash } = require('./lib/redis');
 
 const app = express();
@@ -36,6 +37,15 @@ app.all('/api/encounter/:id/images', (req, res) => {
   req.query.id = req.params.id;
   return encounterImagesHandler(req, res);
 });
+app.all(
+  '/api/encounter/:id/image',
+  express.raw({ type: 'image/*', limit: '10mb' }),
+  (req, res) => {
+    req.query = req.query || {};
+    req.query.id = req.params.id;
+    return encounterImageHandler(req, res);
+  }
+);
 app.all('/api/encounter/:id', (req, res) => {
   req.query = req.query || {};
   req.query.id = req.params.id;
