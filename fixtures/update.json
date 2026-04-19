@@ -31,11 +31,7 @@
   "ais_score": 5,
   "hospital_notification_summary": "⚠ CRITICAL UPGRADE — SAME ENCOUNTER. Patient decompensated en route — pulseless at T+7:30, CPR initiated, ROSC at T+9:00. Suspected cardiac tamponade. Post-ROSC: HR 150, BP 68/palp, SpO2 80%. Intubated. THORACOTOMY TRAY REQUIRED IN BAY NOW. MTP activated. Cardiac surgery must be physically present. ETA 3 minutes.",
   "transcript": "EMS Unit 7 URGENT UPDATE: Patient has crashed. We lost pulses at T plus 7 and a half minutes. CPR ongoing, good quality. We intubated him — video laryngoscopy, 7.5 tube confirmed with capnography. We gave epi twice. We have ROSC — got pulses back approximately one minute ago. Post-ROSC: heart rate is 150, BP is 68 palp, sats coming up from 72, sitting at 80 now. We think this is tamponade — the GSW trajectory looks like it went through the pericardium. We are requesting thoracotomy tray to be ready the moment we hit your bay. MTP needs to be activated right now. We need your cardiac surgeon in that room. ETA is 3 minutes. Do not let that room fill up.",
-  "images": [
-    "https://upload.wikimedia.org/wikipedia/commons/9/9f/Chest_X-ray_of_pneumothorax.png",
-    "https://upload.wikimedia.org/wikipedia/commons/b/bf/Pulseless_electrical_activity_EKG.svg",
-    "https://upload.wikimedia.org/wikipedia/commons/8/8f/Chest_X-ray_1300275.JPG"
-  ],
+  "images": [],
   "status": "post-rosc",
   "resuscitation_events": [
     { "time": "T+7:30", "description": "Loss of pulse — pulseless electrical activity (PEA) confirmed" },
