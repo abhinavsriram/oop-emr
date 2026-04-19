@@ -92,7 +92,51 @@ curl -X POST https://oop-emr.vercel.app/api/encounter \
   -d @initial.json
 ```
 
-### 3.2 `GET /api/encounter/:id` — fetch current merged state
+### 3.2 `POST /api/encounter/:id/images` — append images to an existing encounter
+
+Dedicated endpoint for attaching images (URLs or data URIs) without sending a full encounter payload. Use this when images are produced asynchronously (e.g. imaging comes back after the initial clinical data was already sent).
+
+Headers: `Content-Type: application/json`, `x-api-key: <key>`.
+
+Body:
+
+```json
+{ "images": [
+  "https://your-cdn.example.com/case-42/cxr.png",
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUg..."
+] }
+```
+
+At least one image required. Each entry is a string — either a publicly-reachable URL or a `data:` URI. Appends to the encounter's existing `images[]` array; does not deduplicate.
+
+Responses:
+
+```
+200 OK
+{ "ok": true, "encounter_id": "TRX-20480418-001", "added": 2, "total_images": 5 }
+```
+
+```
+404 Not Found                    — encounter_id doesn't exist yet (POST /api/encounter first)
+401 Unauthorized                 — missing / wrong x-api-key
+400 Bad Request                  — images must be a non-empty array of strings
+405 Method Not Allowed           — use POST
+```
+
+Side effect: publishes a synthetic `encounter_event` on the SSE stream so every open UI appends the new thumbnails without a refresh. The UI's images section header updates to show the running total.
+
+Equivalent to sending a `POST /api/encounter` with `event_type: "update"` + only the `images` field populated — use whichever is more ergonomic for your pipeline.
+
+Example:
+
+```bash
+curl -X POST https://oop-emr.vercel.app/api/encounter/TRX-20480418-001/images \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: $API_KEY" \
+  -d '{"images":["https://upload.wikimedia.org/wikipedia/commons/9/9f/Chest_X-ray_of_pneumothorax.png"]}'
+```
+
+### 3.3 `GET /api/encounter/:id` — fetch current merged state
 
 Returns the full merged state for one encounter. Useful for:
 - Reconciling your service's view with what the EMR actually has
@@ -106,7 +150,7 @@ GET /api/encounter/DOES-NOT-EXIST   →  404 { "error": "not found" }
 
 The response shape is identical to an initial payload, plus all accumulated array entries from subsequent updates (see §6 for merge semantics).
 
-### 3.3 `GET /api/events` — SSE stream
+### 3.4 `GET /api/events` — SSE stream
 
 Optional. If your service wants to observe what the EMR is doing (e.g. for dashboards, replaying events to another system, confirming your writes landed), subscribe here.
 
@@ -127,7 +171,7 @@ data: {}
 
 The stream sends a `: ping\n\n` comment every 20s to keep intermediate proxies alive. Vercel closes each SSE connection at 5 min; an `EventSource` client auto-reconnects transparently.
 
-### 3.4 `POST /api/demo-reset` — wipe all encounters
+### 3.5 `POST /api/demo-reset` — wipe all encounters
 
 Auth required. Use between test runs.
 
@@ -139,7 +183,7 @@ x-api-key: <key>
 
 Deletes every encounter from Redis and broadcasts a `demo_reset` SSE event — every browser tab returns to the AWAITING splash screen.
 
-### 3.5 `POST /api/trigger-call` — queue an outbound call (stub)
+### 3.6 `POST /api/trigger-call` — queue an outbound call (stub)
 
 Auth required. Accepts one field.
 
@@ -155,7 +199,7 @@ x-api-key: <key>
 
 The call pipeline isn't implemented yet — this endpoint currently logs and acknowledges only. The schema is stable (`{ phone_number: string }`) so you can start integrating against it now; implementation comes later.
 
-### 3.6 `GET /api/health`
+### 3.7 `GET /api/health`
 
 ```
 GET /api/health → 200 { "status": "ok" }
@@ -426,6 +470,8 @@ Your service should, at minimum, be able to produce payloads that match the shap
 - **Forgetting `encounter_id`** — 400. No fallback.
 - **Relying on `timestamp` for ordering** — the server uses its own wall clock (`receivedAt`) for merging. Your `timestamp` is displayed but not used for ordering logic.
 - **Hitting `/api/encounter` with GET** — that's a different endpoint shape (`/api/encounter/:id`). Trailing `/:id` matters.
+- **Posting images before the encounter exists** — `POST /api/encounter/:id/images` returns 404 if the encounter hasn't been created yet. Send the `initial` payload first.
+- **Image URLs not publicly reachable** — the browser loads `<img src>` directly; the EMR never proxies them. A URL that works for your backend isn't necessarily reachable from every viewer's network. Use a CDN or public bucket for production images.
 - **Long-lived POST connections** — don't. Each POST is a single request/response. If you need realtime observation, use `/api/events`.
 
 ---

@@ -21,6 +21,7 @@ const eventsHandler = require('./api/events');
 const demoResetHandler = require('./api/demo-reset');
 const healthHandler = require('./api/health');
 const triggerCallHandler = require('./api/trigger-call');
+const encounterImagesHandler = require('./api/encounter/[id]/images');
 const { isUpstash } = require('./lib/redis');
 
 const app = express();
@@ -30,6 +31,11 @@ app.use(express.json({ limit: '50mb' }));
 
 app.all('/api/health', healthHandler);
 app.all('/api/encounter', encounterHandler);
+app.all('/api/encounter/:id/images', (req, res) => {
+  req.query = req.query || {};
+  req.query.id = req.params.id;
+  return encounterImagesHandler(req, res);
+});
 app.all('/api/encounter/:id', (req, res) => {
   req.query = req.query || {};
   req.query.id = req.params.id;
@@ -44,7 +50,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log('');
-  console.log(`  Athena EMR  →  http://localhost:${PORT}`);
+  console.log(`  OOP EMR     →  http://localhost:${PORT}`);
   console.log(`  storage     →  ${isUpstash ? 'Upstash Redis' : 'in-memory (local dev)'}`);
   console.log(`  write auth  →  ${process.env.API_KEY ? 'required (x-api-key)' : 'disabled (dev)'}`);
   console.log('');

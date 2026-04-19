@@ -79,6 +79,7 @@ Send only what changed in an update. Canonical reference: `lib/merge.js`.
 api/                      Vercel serverless functions (also mounted by server.js locally)
 ├── encounter.js          POST — ingest (auth → Zod validate → merge → write Redis → publish)
 ├── encounter/[id].js     GET  — current merged state (for refresh recovery / external polling)
+├── encounter/[id]/images.js  POST — append images to an existing encounter
 ├── events.js             GET  — long-lived SSE; subscribes to Redis pub/sub, forwards events
 ├── demo-reset.js         POST — clear Redis + publish demo_reset (every tab returns to AWAITING)
 ├── health.js             GET  — { status: "ok" }
@@ -144,6 +145,7 @@ API_KEY=devkey npm run demo
 |--------|-----------------------|---------------|-------------------------------------------------|
 | POST   | `/api/encounter`      | `x-api-key`   | Ingest an initial or update payload             |
 | GET    | `/api/encounter/:id`  | —             | Fetch current merged state                      |
+| POST   | `/api/encounter/:id/images` | `x-api-key` | Append images to an existing encounter      |
 | GET    | `/api/events`         | —             | SSE — `encounter_event`, `demo_reset`           |
 | POST   | `/api/demo-reset`     | `x-api-key`   | Wipe Redis + broadcast reset to every tab       |
 | POST   | `/api/trigger-call`   | `x-api-key`   | Queue an outbound call (pipeline TBD — stub)    |

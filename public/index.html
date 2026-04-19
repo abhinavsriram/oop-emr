@@ -770,7 +770,8 @@ function addImages(images) {
     wrap.appendChild(img); wrap.appendChild(lnk);
     grid.appendChild(wrap);
   });
-  document.getElementById('sec-images-hd').textContent = `Scene / Clinical Images (${images.length})`;
+  const total = grid.querySelectorAll('.img-thumb-wrap').length;
+  document.getElementById('sec-images-hd').textContent = `Scene / Clinical Images (${total})`;
 }
 
 // ── NOTE HELPERS ──────────────────────────────────────────────────
