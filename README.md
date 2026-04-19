@@ -1,4 +1,6 @@
-# Athena EMR
+# OOP EMR
+
+Live: **https://oop-emr.vercel.app** · Integration guide: [`INTEGRATION.md`](./INTEGRATION.md)
 
 A mock trauma EMR that any external service can write into. You POST a JSON payload describing an encounter to `/api/encounter`; every connected browser sees the clinical UI populate in real time. Subsequent `update` payloads for the same `encounter_id` are merged server-side (arrays append, scalars overwrite) and streamed out as deltas so the UI never flickers.
 
