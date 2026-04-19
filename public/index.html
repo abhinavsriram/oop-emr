@@ -3,9 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Trauma EMR — Live</title>
+  <title>OOP EMR — Live</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <script src="/socket.io/socket.io.js"></script>
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -270,7 +269,7 @@
 
 <!-- ── TOP HEADER BAR ──────────────────────────────────────────── -->
 <div id="header">
-  <div class="hdr-brand"><span>⊕</span> Trauma EMR</div>
+  <div class="hdr-brand"><span>⊕</span> OOP EMR</div>
   <div class="hdr-fields">
     <div class="hdr-cell">
       <span class="hdr-lbl">Patient</span>
@@ -530,8 +529,10 @@ function setAppState(s) {
 }
 
 // ── RUNTIME STATE ─────────────────────────────────────────────────
-const socket = io();
-let currentId = null;
+const qs       = new URLSearchParams(location.search);
+const API_KEY  = qs.get('k');   // optional X-API-Key for reset button
+const HINT_ID  = qs.get('encounterId');
+let currentId  = null;
 let chart     = null;
 let txOpen    = false;
 
@@ -987,7 +988,10 @@ function initAwaiting() {
 }
 
 function resetDemo() {
-  fetch('/demo-reset').catch(e => console.error('Reset failed:', e));
+  const headers = {};
+  if (API_KEY) headers['x-api-key'] = API_KEY;
+  fetch('/api/demo-reset', { method: 'POST', headers })
+    .catch(e => console.error('Reset failed:', e));
 }
 
 // ── TRANSCRIPT TOGGLE ─────────────────────────────────────────────
@@ -997,8 +1001,8 @@ function toggleTranscript() {
   document.getElementById('tog-btn').textContent = txOpen ? '▼ Hide' : '▶ Show';
 }
 
-// ── SOCKET ────────────────────────────────────────────────────────
-socket.on('encounter_event', ({ payload: p, receivedAt }) => {
+// ── SSE STREAM ────────────────────────────────────────────────────
+function ingestEvent(p, receivedAt) {
   console.log('[EMR]', p.encounter_id, p.event_type, receivedAt);
   if (!currentId || p.encounter_id !== currentId) {
     renderInitial(p, receivedAt);
@@ -1007,15 +1011,33 @@ socket.on('encounter_event', ({ payload: p, receivedAt }) => {
   } else {
     renderInitial(p, receivedAt);
   }
-});
+}
 
-socket.on('demo_reset', () => {
+const es = new EventSource('/api/events');
+es.addEventListener('encounter_event', (e) => {
+  try {
+    const { payload, receivedAt } = JSON.parse(e.data);
+    ingestEvent(payload, receivedAt);
+  } catch (err) { console.error('[EMR] bad event:', err); }
+});
+es.addEventListener('demo_reset', () => {
   console.log('[EMR] Demo reset received');
   initAwaiting();
 });
+es.addEventListener('open',  () => console.log('[EMR] SSE connected'));
+es.addEventListener('error', () => console.log('[EMR] SSE error (auto-reconnecting)'));
 
-socket.on('connect',    () => console.log('[EMR] Connected'));
-socket.on('disconnect', () => console.log('[EMR] Disconnected'));
+// Recover state on refresh if URL has ?encounterId=X
+if (HINT_ID) {
+  fetch(`/api/encounter/${encodeURIComponent(HINT_ID)}`)
+    .then(r => r.ok ? r.json() : null)
+    .then(state => {
+      if (!state) return;
+      const receivedAt = state.timestamp || new Date().toISOString();
+      renderInitial({ ...state, event_type: 'initial' }, receivedAt);
+    })
+    .catch(err => console.error('[EMR] state recovery failed:', err));
+}
 </script>
 </body>
 </html>
